@@ -29,3 +29,5 @@ yarn-error.log*
 
 react-example/node_modules
 react-example/.env  
+node-js-script/node_modules
+node-js-script/.env    
