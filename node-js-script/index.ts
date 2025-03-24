@@ -1,3 +1,4 @@
+require('dotenv').config();
 import {
   BringSDK
 } from 'zkbring-sdk'
@@ -20,10 +21,11 @@ const createDrop = async (sdk: any) => {
   const { drop, event } = await waitForDrop()
   console.log("Done waiting for drop")
   console.log({ drop, event })
+  return drop
 }
 
-const claim = async (sdk: any) => {
-  const drop = await sdk.getDrop("0xaA4DF1A560B9262Ce6553db4c0361CFf3Ea7e7EA")
+const claim = async (sdk: any, dropAddress: string) => {
+  const drop = await sdk.getDrop(dropAddress)
   const recipient = "0xC270728400F64f8DCD2030B589470e4C30F64bbd"
 
   const claimParams = {
@@ -40,7 +42,12 @@ const claim = async (sdk: any) => {
     },
     "ephemeralKey": "0x0961e3f28f9af935a626b0730aabf153fcbc3fb8f10824e6ab5200b9681c01c7"
   }
+
   const { webproof, ephemeralKey } = claimParams
+
+  let isClaimed = await drop.hasUserClaimed({ uHash: webproof.uHash })
+  console.log({ isClaimedBefore: isClaimed })
+
   const { txHash, waitForClaim } = await drop.claim({ webproof, recipient, ephemeralKey })
 
   console.log({ txHash })
@@ -48,18 +55,28 @@ const claim = async (sdk: any) => {
   const event = await waitForClaim()
   console.log("Done waiting for claim")
   console.log(event)
+
+  isClaimed = await drop.hasUserClaimed({ uHash: webproof.uHash })
+  console.log({ isClaimedAfter: isClaimed })
+
 }
 
 
 // Use a function from your SDK to verify everything is working
 const runTest = async () => {
   try {
-    const privateKey = "<YOUR_PRIVATE_KEY>"  //ethers.Wallet.createRandom().privateKey
+    const privateKey = process.env.PRIVATE_KEY;
+    if (!privateKey) {
+      throw new Error("PRIVATE_KEY is not defined in the .env file");
+    }
 
-    const provider = new ethers.JsonRpcProvider("<YOUR_JSON_RPC_URL>");
+    const providerUrl = process.env.JSON_RPC_URL;
+    if (!providerUrl) {
+      throw new Error("JSON_RPC_URL is not defined in the .env file");
+    }
+
+    const provider = new ethers.JsonRpcProvider(providerUrl);
     const wallet = new ethers.Wallet(privateKey, provider)
-
-    const zkPassAppId = "<YOUR_ZKPASS_ID>"
 
     const sdk = new BringSDK({
       walletOrProvider: wallet
@@ -76,8 +93,8 @@ const runTest = async () => {
     })
     console.log({ res })
 
-    await createDrop(sdk)
-    //await claim(sdk)
+    const drop = await createDrop(sdk)
+    await claim(sdk, drop.address)
 
   } catch (error) {
     console.error("Error testing SDK:", error);

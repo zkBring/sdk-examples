@@ -9,6 +9,7 @@
     "dev": "ts-node index.ts"
   },
   "dependencies": {
+    "dotenv": "^16.4.7",
     "ethers": "^6.13.5",
     "zkbring-sdk": "^0.0.1-alpha-rc.2"
   },
