@@ -24,8 +24,9 @@ const createDrop = async (sdk: any) => {
   return drop
 }
 
-const claim = async (sdk: any, dropAddress: string) => {
+const claim = async (sdk: any, dropAddress: string, provider: ethers.ContractRunner) => {
   const drop = await sdk.getDrop(dropAddress)
+  await drop.updateWalletOrProvider(provider)
   const recipient = "0xC270728400F64f8DCD2030B589470e4C30F64bbd"
 
   const claimParams = {
@@ -79,7 +80,7 @@ const runTest = async () => {
     const wallet = new ethers.Wallet(privateKey, provider)
 
     const sdk = new BringSDK({
-      walletOrProvider: wallet
+      walletOrProvider: provider
     })
     console.log("successfully initiated SDK")
 
@@ -93,8 +94,12 @@ const runTest = async () => {
     })
     console.log({ res })
 
+    await sdk.updateWalletOrProvider(wallet)
+
     const drop = await createDrop(sdk)
-    await claim(sdk, drop.address)
+
+    await sdk.updateWalletOrProvider(provider)
+    await claim(sdk, drop.address, wallet)
 
   } catch (error) {
     console.error("Error testing SDK:", error);
