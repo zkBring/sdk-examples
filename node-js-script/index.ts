@@ -31,18 +31,19 @@ const claim = async (sdk: any, dropAddress: string, provider: ethers.ContractRun
 
   const claimParams = {
     "webproof": {
-      "taskId": "4667b7246d2d4849ba871a44551d0a7c",
+      "taskId": "ef8a0d882fbf477b803e48dcb8de08e1",
       "publicFields": [],
       "allocatorAddress": "0x19a567b3b212a5b35bA0E3B600FbEd5c2eE9083d",
       "publicFieldsHash": "0xc89efdaa54c0f20c7adf612882df0950f5a951637e0307cdcb4c672f298b8bc6",
-      "allocatorSignature": "0x41e5370652651e8f0fea0357aba8d2abc6d8f78a05b6f3b70b42ea798ab4758c3219d4107d40fc6c7654c482bd48f06b87c26a90cc77d94e4c27088b5a1eb62f1b",
+      "allocatorSignature": "0xf3aecbae51f4e2f09bcc32a1cd925c926074023b099e8333fb81ec67bb1461c422eee0a273942bd6546db87cd4e2c66695fee59dc180e1124ea37dd036b8e0d91c",
       "uHash": "0xd4b1ee22a7a2eeb2adf53d79b7430a396ffcf699276112fa21949b8ff8fd172c",
       "validatorAddress": "0xb1C4C1E1Cdd5Cf69E27A3A08C8f51145c2E12C6a",
-      "validatorSignature": "0x2e45e4e236f8e2bba835eae0d3da96e9bc4794abf205e2bf5d6ba96834a6a78c074962568e0d8ad17b55f3c8cd4607ac24a3642df7cd8a2241036d08240f262c1b",
-      "recipient": "0xf6fdC3F27eEf1EDC236227404582d3F8906eA0CD"
+      "validatorSignature": "0x13bfd81ed48c9b5663480631584d29e61c34949debb6f4fa63914982b6dd5b904711da0736a807e6a5047a2c481ff79986a024e8c704fc55d64d78f960421c071b",
+      "recipient": "0xe994a5800ca20c4fb40ada179a7b81d245e0b071"
     },
-    "ephemeralKey": "0x0961e3f28f9af935a626b0730aabf153fcbc3fb8f10824e6ab5200b9681c01c7"
+    "ephemeralKey": "0xfbf99f53ddac4666a39a90e7342842aa01ac2f221f9d05ce112501715988155f"
   }
+
 
   const { webproof, ephemeralKey } = claimParams
 
@@ -59,9 +60,7 @@ const claim = async (sdk: any, dropAddress: string, provider: ethers.ContractRun
 
   isClaimed = await drop.hasUserClaimed({ uHash: webproof.uHash })
   console.log({ isClaimedAfter: isClaimed })
-
 }
-
 
 // Use a function from your SDK to verify everything is working
 const runTest = async () => {
@@ -94,12 +93,55 @@ const runTest = async () => {
     })
     console.log({ res })
 
+    console.log("factory: ", sdk.dropFactory.target)
+
     await sdk.updateWalletOrProvider(wallet)
 
     const drop = await createDrop(sdk)
 
-    await sdk.updateWalletOrProvider(provider)
-    await claim(sdk, drop.address, wallet)
+    //await sdk.updateWalletOrProvider(provider)
+
+    const stakedBefore = await drop.getStakedAmount()
+    console.log({ stakedBefore })
+    const stakeAmount = "1"
+
+
+    const approveABI = [
+      'function approve(address spender, uint256 amount) public returns (bool)'
+    ];
+
+    const bringToken = new ethers.Contract(drop.token, approveABI, wallet);
+    const approveTx = await bringToken.approve(drop.address, "2")
+    await approveTx.wait()
+
+    const stake = async () => {
+      const { txHash, waitForStake } = await drop.stake(stakeAmount)
+      console.log({ stakeTxHash: txHash })
+
+      const event = await waitForStake()
+      console.log({ event })
+
+      const stakedAfter = await drop.getStakedAmount()
+      console.log({ stakedAfter })
+    }
+
+    await stake()
+    await stake()
+
+    // const { txHash, waitForUpdate } = await drop.updateMetadata({ title: "New Title", description: "New Description" })
+    // console.log({ updateTxHash: txHash })
+    // 
+    // const event = await waitForUpdate()
+    // console.log({ event })
+
+
+    // const { txHash, waitForStop } = await drop.stop()
+    // console.log({ StopTxHash: txHash })
+    // 
+    // const event = await waitForStop()
+    // console.log({ event })
+    //const dropAddress = "0x7C4c6d471C8C7A6426fb82C159b58788F97b5f0c"
+    //await claim(sdk, dropAddress, wallet)
 
   } catch (error) {
     console.error("Error testing SDK:", error);
